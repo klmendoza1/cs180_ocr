@@ -4,15 +4,15 @@ from math import exp
 from numpy import asarray
 from operator import mul, add, sub
 from itertools import chain
-import random
+from random import random
 
 def regression(x,d,alpha=0.01):
 	m = len(x) 			# size
 	n = len(x[0]) 		# features
-	weights = tuple(int(random.uniform(-1000, 1000)) for i in range(n+1))
+	weights = tuple(random() for i in range(n+1))
 	_x=[[1]+each for each in x]
 
-	s = lambda z: 1 if z>=0 else 0 #signum fcn
+	s = lambda z: 1 if (1/(1+exp(-z)))>=0.5 else 0 #sigmoid fcn
 	y = lambda u: s(sum(map(mul,u,weights)))
 
 	for index in range(m):
