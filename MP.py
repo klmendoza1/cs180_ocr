@@ -4,12 +4,12 @@ from math import exp
 from numpy import asarray
 from operator import mul, add, sub
 from itertools import chain
-from random import random
+from random import uniform
 
 def regression(x,d,alpha=0.01):
 	m = len(x) 			# size
 	n = len(x[0]) 		# features
-	weights = tuple(random() for i in range(n+1))
+	weights = tuple(uniform(-0.5, 0.5) for i in range(n+1)) #(random() for i in range(n+1))
 	_x=[[1]+each for each in x]
 
 	s = lambda z: 1 if 1/(1+exp(-z))>=0.5 else 0 #sigmoid fcn
@@ -26,7 +26,7 @@ def regression(x,d,alpha=0.01):
 
 def main():
 	#chars = ['a','i','u','e','o']
-	huehue = lambda qwerty: 1 if qwerty<=150 else 0 
+	huehue =  lambda qwerty: float(qwerty)/float(255) #lambda qwerty: 1 if qwerty<=150 else 0 
 	chars = ['a']
 	x_train_all = []
 	for each1 in chars:
@@ -38,7 +38,7 @@ def main():
 			im = asarray(Image.open('train_'+each1+'/'+xid+'.jpg').convert('L'))
 			img = list(chain(*im))
 			
-			img = [huehue(huahua) for huahua in img]
+			img = [huehue(huahua) for huahua in img] #[huehue(huahua) for huahua in img]
 			x_train.append(img)
 			print "image"+xid+" translation success"
 		x_train_all.append(x_train)
