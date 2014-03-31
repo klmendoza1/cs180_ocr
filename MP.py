@@ -20,8 +20,10 @@ def regression(x,d,alpha=0.01):
 		print "desired: "+str(d[index])
 		if not sy(_x[index])==d[index]:
 			print "whoa"
-			weights=tuple(weights[j]+(alpha*(d[index]-sy(_x[index]))*((_x[index])[j])) for j in range(n+1))
-
+			weights=tuple(weights[j] + (alpha*(d[index]-sy(_x[index]))*(_x[index])[j]) for j in range(n+1))
+			print y(_x[index])
+			print "desired: "+str(d[index])
+		print  "---"
 	return weights,sy
 
 def main():
@@ -31,7 +33,7 @@ def main():
 	x_train_all = []
 	for each1 in chars:
 		x_train = []
-		for each2 in range(30):
+		for each2 in range(15):
 			xid = str(each2)
 			if each2<10:
 				xid = '0'+xid
@@ -43,7 +45,10 @@ def main():
 			print "image"+xid+" translation success"
 		x_train_all.append(x_train)
 	#print x_train_all
-	ones=[1 for each in range(30)]
+	ones=[1 for each in range(15)]
+	#zeroes=[0 for each in range(15)]
+	#y_train = ones+zeroes
+	#print y_train
 	weights_a,fcn = regression(x_train_all[0], ones)
 	#weights_i,_ = regression(x_train_all[1], 1)
 	#weights_u,_ = regression(x_train_all[2], 1)
@@ -56,16 +61,30 @@ def main():
 	print "weights: "
 	print weights_a
 
+	s = lambda z: 1 if 1/(1+exp(-z))>=0.5 else 0 #sigmoid fcn
+
 	tim = asarray(Image.open('train_a/31.jpg').convert('L'))
-	timg = [1]+list(chain(*tim))
-	timg = [huehue(huahua) for huahua in timg]
+	timg = list(chain(*tim))
+	timg = [1]+[huehue(huahua) for huahua in timg]
 
 	print "timg: "
 	print timg
 
 	print "result: "
-
 	print sum(map(mul,timg,weights_a))
+	print s(sum(map(mul,timg,weights_a)))
+
+	tim = asarray(Image.open('train_a/00.jpg').convert('L'))
+	timg = list(chain(*tim))
+	timg = [1]+[huehue(huahua) for huahua in timg]
+
+	print "timg: "
+	print timg
+
+	print "result: "
+	print sum(map(mul,timg,weights_a))
+	print s(sum(map(mul,timg,weights_a)))
+
 
 if __name__ == '__main__':
   main()
