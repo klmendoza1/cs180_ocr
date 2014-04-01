@@ -1,90 +1,101 @@
+from os import listdir
+import sys
+from glob import glob
+from pickle import dump
 from PIL import Image
-#from scipy import ndimage
-from math import exp
 from numpy import asarray
-from operator import mul, add, sub
 from itertools import chain
-from random import uniform
+from perceptron import Perceptron
 
-def regression(x,d,alpha=0.01):
-	m = len(x) 			# size
-	n = len(x[0]) 		# features
-	weights = tuple(uniform(-0.5, 0.5) for i in range(n+1)) #(random() for i in range(n+1))
-	_x=[[1]+each for each in x]
-
-	s = lambda z: 1 if 1/(1+exp(-z))>=0.5 else 0 #sigmoid fcn
-	y = lambda u: sum(map(mul,u,weights))/(n+1)
-	sy = lambda zu: s(y(zu))
-	for index in range(m):
-		print y(_x[index])
-		print "desired: "+str(d[index])
-		if not sy(_x[index])==d[index]:
-			print "whoa"
-			weights=tuple(weights[j] + (alpha*(d[index]-sy(_x[index]))*(_x[index])[j]) for j in range(n+1))
-			print y(_x[index])
-			print "desired: "+str(d[index])
-		print  "---"
-	return weights,sy
+consonants_spc=['s','t','h','y','w']
+consonants = ['','k','n','m','r']
+vowels = ['a','i','u','e','o']
 
 def main():
-	#chars = ['a','i','u','e','o']
-	huehue =  lambda qwerty: float(qwerty)/float(255) #lambda qwerty: 1 if qwerty<=150 else 0 
-	chars = ['a']
-	x_train_all = []
-	for each1 in chars:
-		x_train = []
-		for each2 in range(15):
-			xid = str(each2)
-			if each2<10:
-				xid = '0'+xid
-			im = asarray(Image.open('train_'+each1+'/'+xid+'.jpg').convert('L'))
-			img = list(chain(*im))
-			
-			img = [huehue(huahua) for huahua in img] #[huehue(huahua) for huahua in img]
-			x_train.append(img)
-			print "image"+xid+" translation success"
-		x_train_all.append(x_train)
-	#print x_train_all
-	ones=[1 for each in range(15)]
-	#zeroes=[0 for each in range(15)]
-	#y_train = ones+zeroes
-	#print y_train
-	weights_a,fcn = regression(x_train_all[0], ones)
-	#weights_i,_ = regression(x_train_all[1], 1)
-	#weights_u,_ = regression(x_train_all[2], 1)
-	#weights_e,_ = regression(x_train_all[3], 1)
-	#weights_o,_ = regression(x_train_all[4], 1)
+  print "START: Training"
+  perceptrons = list()
+  # make perceptron for each character to be recognized
+  for x in range(len(vowels)*len(consonants)):
+    perceptrons.append(Perceptron(1024))
+  train(perceptrons)
+  print "END: Training"
 
-	print x_train_all[0][0]
+  out_name = raw_input("Save perceptron data file as: ")
+  out_file = open(out_name, "w")
+  dump(perceptrons, out_file)
 
-	#test here
-	print "weights: "
-	print weights_a
+  print "START: Testing"
+  # list compatible images
+  compat = glob("*.png")
+  if len(compat) > 0:
+    print "Test images found:"
+    for png in compat:
+      print png
+  else:
+    print "n/a"
+  
+  # prompt to input image name
+  while True:
+    try:
+      img_name = raw_input("Type filename with extension (Ctrl+C to exit): ")
+    except KeyboardInterrupt:
+      print
+      print "Exiting."
+      exit(0)
+    # process image
+    img = Image.open(img_name)
+    
+    counter = 0
+    ans = None
+    for x in range(len(perceptrons)):
+      n = perceptrons[x]
+      feed(img, n)
+      n.activate()
+      if n.get_output() == 1.0:
+        ans = vowels[x]
+        counter += 1
+    
+    if counter == 1: # if one neuron responded
+      print img_name + " has been recognized as a katakana " + ans + "."
+    else: # if multiple or no perceptrons responded
+      print img_name + " was unrecognizable."
 
-	s = lambda z: 1 if 1/(1+exp(-z))>=0.5 else 0 #sigmoid fcn
+def train(perceptrons):
+  for each_con in range(len(consonants)):   # for each consonant (and initial blank)
+    for each_vow in range(len(vowels)):     # for each vowel
+      print "Training: katakana '%s'" %(consonants[each_con]+vowels[each_vow])
+      n = perceptrons[each_con*len(consonants)+each_vow]
+      # perceptrons are arranged in a list in an order:
+      # 'a', 'i', 'u', 'e', 'o', 'ka', 'ki', 'ku', 'ke', 'ko', ..., consonants[-1]+vowels[-1]
+      ls1 = listdir("train/")
+      ls1 = sorted(ls1)
+      #ls1 = list of folders in folder 'train'
 
-	tim = asarray(Image.open('train_a/31.jpg').convert('L'))
-	timg = list(chain(*tim))
-	timg = [1]+[huehue(huahua) for huahua in timg]
+      errors  = 1      # initialize as 1 to enter loop
+      
+      while errors > 0:
+        errors = 0     # change value to 0, counts instances of
+                       # inconsistencies with solved and desired output
+        for i in ls1: # for every folder in 'train'
+          exp_out = 0   # must return negative match
+          if str(i) == "train_"+consonants[each_con]+vowels[each_vow]:
+            exp_out = 1 # training set is to the corresponding
+                        # perceptron; must return positive match
+          dir1 = "train/%s/" %i
+          ls2 = listdir(dir1)
+          ls2 = sorted(ls2)
+          # list of files in folder 'train/train_xy' for x in consonants and y in vowels
+          for j in ls2: # for every file in 'train/train_xy' for x in consonants and y in vowels
+            img = Image.open(dir1 + j)
+            feed(img, n)  # convert images to list of key value
+            errors += n.train_step(exp_out) # add 1 if error is detected
 
-	print "timg: "
-	print timg
+def feed(pimg, n):
+  im = asarray(pimg.convert('L'))
+  img = list(chain(*im))
+  n.set_input(img)
 
-	print "result: "
-	print sum(map(mul,timg,weights_a))
-	print s(sum(map(mul,timg,weights_a)))
-
-	tim = asarray(Image.open('train_a/00.jpg').convert('L'))
-	timg = list(chain(*tim))
-	timg = [1]+[huehue(huahua) for huahua in timg]
-
-	print "timg: "
-	print timg
-
-	print "result: "
-	print sum(map(mul,timg,weights_a))
-	print s(sum(map(mul,timg,weights_a)))
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
+  
+  
   main()
